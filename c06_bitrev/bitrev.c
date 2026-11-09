@@ -7,18 +7,6 @@ typedef struct vectors
     uint32_t expected;
 }vec;
 
-uint32_t bit_reverse32_bit(uint32_t x)
-{
-    uint32_t res = 0;
-    for(uint8_t i = 0; i < 32; i++)
-    {
-        res <<= 1;
-        res |= ((x >> i) & 1U);            
-    }
-    return res;
-}
-
-
 static const vec tests[] =
     {
         { 0x00000000u, 0x00000000u },
@@ -42,19 +30,58 @@ static const vec tests[] =
     };
 
 
-uint8_t reverse32_func(uint8_t size_test)
+
+/*looping Bit Reversal*/
+uint32_t bit_reverse32_bit(uint32_t x)
+{
+    uint32_t res = 0;
+    for(uint8_t i = 0; i < 32; i++)
+    {
+        res <<= 1;
+        res |= ((x >> i) & 1U);            
+    }
+    return res;
+}
+
+
+
+
+/*Round Trip Check*/
+
+uint8_t round_trip_func(const char *name, uint32_t (*reversal)(uint32_t))
+{
+    size_t counter = 0;
+    uint32_t final_val = 0;
+    for(uint32_t looper = 0; looper < 100000; looper++)
+    {
+        final_val = reversal(reversal(looper));
+        if(final_val == looper)
+            continue;
+        else
+        {
+            counter++;
+            printf("[%s] he Errors encountered are in input : 0x%08x   Expected : 0x%08x Output : 0x%08x\n", name, looper, looper, final_val);
+        }
+    }
+    return counter;
+}
+
+
+/*Reversal Logic*/
+
+uint8_t reverse32_func(const char *name, uint32_t (*reversal)(uint32_t), size_t size_test)
 {
     uint8_t counter = 0;
     uint32_t final_val = 0;
-    for(uint8_t i = 0; i < size_test; i++)
+    for(size_t i = 0; i < size_test; i++)
     {
-        final_val = bit_reverse32_bit(tests[i].in);
+        final_val = reversal(tests[i].in);
         if(final_val == tests[i].expected)
             continue;
         else
         {
             counter++;
-            printf("The Errors encountered are in input : 0x%08x   Expected : 0x%08x Output : 0x%08x\n", tests[i].in, tests[i].expected, final_val);
+            printf("[%s] The Errors encountered are in input : 0x%08x   Expected : 0x%08x Output : 0x%08x\n", name, tests[i].in, tests[i].expected, final_val);
         }
     }
     if(counter)
@@ -65,11 +92,15 @@ uint8_t reverse32_func(uint8_t size_test)
 
 int main(void)
 {
-    uint8_t counter = 0;
+    uint8_t counter = 0, round_trip_counter = 0;
     size_t size_test = sizeof(tests)/sizeof(tests[0]);
+    
 
-    counter = reverse32_func(size_test);
+    counter = reverse32_func("bit_reverse32_bit", bit_reverse32_bit, size_test);
+    round_trip_counter = round_trip_func("bit_reverse32_bit_checker", bit_reverse32_bit);
 
+    if(round_trip_counter > 0)
+        return round_trip_counter;
     if(counter > 0)
         return counter;
     printf("No Errors\n");
